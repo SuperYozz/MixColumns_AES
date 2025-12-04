@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AES MixColumns Calculator</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    max-width: 900px;
+    margin: auto;
+    box-shadow: 0 0 12px rgba(0,0,0,0.1);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th {
+    background: #007bff;
+    color: white;
+    padding: 12px;
+}
+
+td {
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+
+.result {
+    background: #ffecec;
+    color: #d10000;
+    font-weight: bold;
+}
+
+input {
+    width: 60px;
+    padding: 6px;
+    text-transform: uppercase;
+    font-size: 16px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>AES MixColumns Calculator</h2>
+    <p>Masukkan matriks 4×4 (hex):</p>
+
+    <!-- Input matrix 4x4 -->
+    <table>
+        <tbody id="inputMatrix">
+            <tr>
+                <td><input id="m00"></td>
+                <td><input id="m01"></td>
+                <td><input id="m02"></td>
+                <td><input id="m03"></td>
+            </tr>
+            <tr>
+                <td><input id="m10"></td>
+                <td><input id="m11"></td>
+                <td><input id="m12"></td>
+                <td><input id="m13"></td>
+            </tr>
+            <tr>
+                <td><input id="m20"></td>
+                <td><input id="m21"></td>
+                <td><input id="m22"></td>
+                <td><input id="m23"></td>
+            </tr>
+            <tr>
+                <td><input id="m30"></td>
+                <td><input id="m31"></td>
+                <td><input id="m32"></td>
+                <td><input id="m33"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <button onclick="computeMixColumns()" 
+            style="margin-top:15px;padding:12px;width:100%;font-size:18px;background:#28a745;color:white;border:none;border-radius:6px;cursor:pointer;">
+        Hitung MixColumns
+    </button>
+
+    <div id="output"></div>
+</div>
+
+<script>
+// gf multiply
+function xtime(a) {
+    a <<= 1;
+    if (a & 0x100) a ^= 0x11B;
+    return a & 0xFF;
+}
+
+function gmul(a, b) {
+    if (b === 1) return a;
+    if (b === 2) return xtime(a);
+    if (b === 3) return xtime(a) ^ a;
+    return 0;
+}
+
+function getHex(id) {
+    return parseInt(document.getElementById(id).value || "00", 16);
+}
+
+// MATRIX M FIXED
+const M = [
+    [2, 3, 1, 1],
+    [1, 2, 3, 1],
+    [1, 1, 2, 3],
+    [3, 1, 1, 2]
+];
+
+function computeMixColumns() {
+    let input = [
+        [getHex("m00"), getHex("m01"), getHex("m02"), getHex("m03")],
+        [getHex("m10"), getHex("m11"), getHex("m12"), getHex("m13")],
+        [getHex("m20"), getHex("m21"), getHex("m22"), getHex("m23")],
+        [getHex("m30"), getHex("m31"), getHex("m32"), getHex("m33")]
+    ];
+
+    let result = [ [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0] ];
+
+    let html = "";
+
+    for (let col = 0; col < 4; col++) {
+
+        html += `
+        <h3>Kolom ${col+1}</h3>
+        <table>
+            <tr>
+                <th>Elemen Hasil</th>
+                <th>Persamaan Input M × C</th>
+                <th>Hasil Perkalian (XOR)</th>
+            </tr>
+        `;
+
+        for (let row = 0; row < 4; row++) {
+            let terms = [];
+            let xorTerms = [];
+            let xorValue = 0;
+
+            for (let i = 0; i < 4; i++) {
+                let mul = gmul(input[i][col], M[row][i]);
+                terms.push(`(${M[row][i].toString(16).padStart(2, "0").toUpperCase()} · ${input[i][col].toString(16).padStart(2,"0").toUpperCase()})`);
+                xorTerms.push(mul.toString(16).padStart(2,"0").toUpperCase());
+                xorValue ^= mul;
+            }
+
+            result[row][col] = xorValue;
+
+            html += `
+            <tr>
+                <td>C${row},${col}</td>
+                <td>${terms.join(" ⊕ ")}</td>
+                <td class="result">${xorTerms.join(" ⊕ ")} = ${xorValue.toString(16).toUpperCase()}</td>
+            </tr>
+            `;
+        }
+
+        html += "</table>";
+    }
+
+    // Final full matrix
+    html += `
+    <h2>Hasil Akhir MixColumns (4×4)</h2>
+    <table>
+        <tr><th>0</th><th>1</th><th>2</th><th>3</th></tr>
+        ${result.map(row => `
+            <tr>${row.map(v => `<td class='result'>${v.toString(16).padStart(2,"0").toUpperCase()}</td>`).join("")}</tr>
+        `).join("")}
+    </table>
+    `;
+
+    document.getElementById("output").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
